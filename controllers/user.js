@@ -26,19 +26,11 @@ exports.signin = (req, res) => {
     console.log( email, password)
     User.findOne({ email }, (err, user) => {
 
-        
         if (err || !user) {
             return res.status(400).json({
                 error: "User with that email does not exist. Please signup"
             });
         }
-        // if user is found make sure the email and password match
-        // create authenticate method in user model
-        // if (user.authenticate(password)) {
-        //     return res.status(202).json({
-        //         ok: "match"
-        //     });
-        // }
         if (!user.authenticate(password)) {
             return res.status(401).json({
                 error: "Email and password dont match"
@@ -51,6 +43,14 @@ exports.signin = (req, res) => {
         // return response with user and token to frontend client
         const { _id, name, email, role } = user;
         return res.json({ token, user: { _id, email, name, role } })
+    });
+};
 
-    })
-}
+exports.signout = (req, res) => {
+    res.clearCookie('t')
+    res.json({message: "Signout succesful"})
+};
+exports.requireSignin = expressJwt({
+    secret: process.env.JWT_SECRET,
+    userProperty: "auth"
+})
