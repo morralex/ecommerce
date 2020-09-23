@@ -6,15 +6,17 @@ const { errorHandler } = require('../helpers/dbErrorHandler');
 const { exec } = require('child_process');
 
 exports.productById = (req, res, next, id) => {
-    Product.findById(id).exec((err, product) => {
-        if (err || !product) {
-            return res.status(400).json({
-                error: 'Product not found'
-            });
-        }
-        req.product = product
-        next();
-    });
+    Product.findById(id)
+        .populate('category')
+        .exec((err, product) => {
+            if (err || !product) {
+                return res.status(400).json({
+                    error: 'Product not found'
+                });
+            }
+            req.product = product
+            next();
+        });
 };
 
 exports.read = (req, res) => {
@@ -163,28 +165,28 @@ exports.list = (req, res) => {
 exports.listRelated = (req, res) => {
     let limit = req.query.limit ? parseInt(req.query.limit) : 7;
 
-    Product.find({_id: {$ne: req.product}, category: req.product.category})
-    .limit(limit)
-    .populate('category', "_id name")
-    .exec((err, products) => {
-        if (err) {
-            return res.status(400).json({
-                error: "Products not found"
-            })
-        }
-        res.json(products);
-    })
+    Product.find({ _id: { $ne: req.product }, category: req.product.category })
+        .limit(limit)
+        .populate('category', "_id name")
+        .exec((err, products) => {
+            if (err) {
+                return res.status(400).json({
+                    error: "Products not found"
+                })
+            }
+            res.json(products);
+        })
 };
 
 exports.listCategories = (req, res) => {
     Product.distinct("category", {}, (err, categories) => {
         if (err) {
-             return res.status(400).json({
-                 error: "Categories not found"
-             })
+            return res.status(400).json({
+                error: "Categories not found"
+            })
         }
         res.json(categories)
-    }) 
+    })
 }
 
 /**
@@ -194,17 +196,17 @@ exports.listCategories = (req, res) => {
  * as the user clicks on those checkbox and radio buttons
  * we will make api request and show the products to users based on what he wants
  */
- 
+
 exports.listBySearch = (req, res) => {
     let order = req.body.order ? req.body.order : "desc";
     let sortBy = req.body.sortBy ? req.body.sortBy : "_id";
     let limit = req.body.limit ? parseInt(req.body.limit) : 100;
     let skip = parseInt(req.body.skip);
     let findArgs = {};
- 
+
     // console.log(order, sortBy, limit, skip, req.body.filters);
     // console.log("findArgs", findArgs);
- 
+
     for (let key in req.body.filters) {
         if (req.body.filters[key].length > 0) {
             if (key === "price") {
@@ -219,7 +221,7 @@ exports.listBySearch = (req, res) => {
             }
         }
     }
- 
+
     Product.find(findArgs)
         .select("-photo")
         .populate("category")
@@ -246,3 +248,27 @@ exports.photo = (req, res, next) => {
     }
     next();
 };
+
+exports.listSearch = (req, res) => {
+    //create querey object to hold search value and category value
+    const query = {}
+    // assign search value to query.name
+    if (req.query.search) {
+        query.name = { $regex: req.query.search, $options: 'i' }
+        //assign category calue to query.category
+        if (req.query.category && req.query.category != 'All') {
+            query.category = req.query.category
+        }
+        //find the produyct based on query object based on query object with 2 properties
+        // search and category
+        Product.find(query, (err, products) => {
+            if (err) {
+                return res.status(400).json({
+                    error: errorHandler(err)
+                })
+
+            }
+            res.json(products)
+        })
+    }
+}
