@@ -3,6 +3,7 @@ const braintree = require('braintree');
 require('dotenv').config();
 
 const gateway = new braintree.BraintreeGateway({
+    // gets rid of 
     environment: braintree.Environment.Sandbox, // Production
     merchantId: process.env.BRAINTREE_MERCHANT_ID,
     publicKey: process.env.BRAINTREE_PUBLIC_KEY,
